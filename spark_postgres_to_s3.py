@@ -47,6 +47,7 @@ spark = (
     .config("spark.jars.ivy", "/tmp/.ivy2") \
     .config("spark.kubernetes.executor.container.image", "ahajiyev/spark-minio6:3.5.1") \
     .config("spark.kubernetes.container.image", "ahajiyev/spark-minio6:3.5.1") \
+    .config("spark.kubernetes.node.selector", "kubernetes.io/arch=arm64") \
     .getOrCreate()
 )
 
