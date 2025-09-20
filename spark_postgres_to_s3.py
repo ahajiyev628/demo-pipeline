@@ -15,6 +15,11 @@ spark = SparkSession.builder \
     .appName("PostgresToMinIO") \
     .getOrCreate()  # jars already pre-baked in image
 
+print(args.postgres_url)
+print(args.postgres_table)
+print(args.postgres_user)
+print(args.postgres_password)
+
 # Postgres JDBC read
 df = spark.read \
     .format("jdbc") \
