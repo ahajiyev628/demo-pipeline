@@ -72,6 +72,3 @@ df = spark.createDataFrame(data)
 # Show the DataFrame
 df.show()
 
-# Stop Spark session
-spark.stop()
-
