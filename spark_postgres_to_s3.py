@@ -24,7 +24,7 @@ df = spark.read \
     .option("password", args.postgres_password) \
     .load()
 
-df.show(5)
+df.limit(10).show()
 
 # Write to MinIO (S3)
 df.write \
