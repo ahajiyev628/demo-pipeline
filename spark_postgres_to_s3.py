@@ -1,6 +1,8 @@
 import argparse
 from pyspark.sql import SparkSession
 import subprocess
+from subprocess import check_output
+
 
 # Arguments
 parser = argparse.ArgumentParser()
