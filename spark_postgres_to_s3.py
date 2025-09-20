@@ -36,6 +36,11 @@ spark = (
     .config("spark.kubernetes.container.image", "ahajiyev/spark-minio6:3.5.1")
     .config("spark.kubernetes.authenticate.driver.serviceAccountName", "airflow")
     .config("spark.driver.host", driver_host) 
+    .config("spark.executor.instances", "1")
+    .config("spark.executor.cores", "1")
+    .config("spark.executor.memory", "3g")
+    .config("spark.driver.memory", "3g")
+
     .getOrCreate()
 )
 
@@ -74,8 +79,9 @@ from pyspark.sql import Row
 
 
 # Create a simple DataFrame
-data = [Row(id=1, name="Alice"), Row(id=2, name="Bob"), Row(id=3, name="Charlie")]
-df = spark.createDataFrame(data)
+rdd = spark.sparkContext.parallelize(data, numSlices=1)
+df = spark.createDataFrame(rdd, ["col1", "col2"])
+
 
 # Show the DataFrame
 df.show()
