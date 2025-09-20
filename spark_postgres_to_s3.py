@@ -15,7 +15,6 @@ args = parser.parse_args()
 # Spark session
 spark = SparkSession.builder \
     .appName("PostgresToMinIO") \
-    .config("spark.driver.bindAddress", "0.0.0.0") \
     .getOrCreate()  # jars already baked in image
 
 print(args.postgres_url)
