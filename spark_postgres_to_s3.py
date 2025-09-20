@@ -13,10 +13,11 @@ parser.add_argument("--input_path", required=True)
 
 args = parser.parse_args()
 
-driver_host = subprocess.getoutput(
-    "grep -E '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' /etc/hosts | grep -v '127.0.0.1' | awk '{print $1}'"
-)
-
+driver_host = check_output(
+    "grep -E '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' /etc/hosts | grep -v '127.0.0.1' | awk '{print $1}'",
+    shell=True,
+    text=True
+).strip()
 
 # Spark session
 spark = (
