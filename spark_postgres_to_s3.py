@@ -1,6 +1,7 @@
 import argparse
 from pyspark.sql import SparkSession
 
+# Arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("--postgres_url", required=True)
 parser.add_argument("--postgres_table", required=True)
@@ -9,34 +10,25 @@ parser.add_argument("--postgres_password", required=True)
 parser.add_argument("--output_path", required=True)
 args = parser.parse_args()
 
+# Spark session
 spark = SparkSession.builder \
     .appName("PostgresToMinIO") \
-    .config("spark.jars.packages", ",".join([
-        "org.apache.hadoop:hadoop-aws:3.3.4",
-        "com.amazonaws:aws-java-sdk-bundle:1.12.765",
-    ])) \
-    .getOrCreate()
+    .getOrCreate()  # jars already pre-baked in image
 
-jdbc_url = args.postgres_url
-print("Allahverdi")
-pg_table = args.postgres_table
-pg_user = args.postgres_user
-pg_password = args.postgres_password
-
+# Postgres JDBC read
 df = spark.read \
     .format("jdbc") \
-    .option("url", jdbc_url) \
-    .option("dbtable", pg_table) \
-    .option("user", pg_user) \
-    .option("password", pg_password) \
+    .option("url", args.postgres_url) \
+    .option("dbtable", args.postgres_table) \
+    .option("user", args.postgres_user) \
+    .option("password", args.postgres_password) \
     .load()
 
 df.show(5)
 
-output_path = args.output_path
-
+# Write to MinIO (S3)
 df.write \
     .mode("overwrite") \
-    .parquet(output_path)
+    .parquet(args.output_path)
 
 spark.stop()
