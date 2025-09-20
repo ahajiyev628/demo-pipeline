@@ -14,6 +14,7 @@ spark = SparkSession.builder \
     .getOrCreate()
 
 jdbc_url = args.postgres_url
+print("Allahverdi")
 pg_table = args.postgres_table
 pg_user = args.postgres_user
 pg_password = args.postgres_password
