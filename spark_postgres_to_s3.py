@@ -44,7 +44,7 @@ spark = (
     .config("spark.executor.memory", "3g")
     .config("spark.driver.memory", "3g")
     .config("spark.driver.bindAddress", "0.0.0.0") \
-
+    .config("spark.jars.ivy", "/tmp/.ivy2") \
     .getOrCreate()
 )
 
