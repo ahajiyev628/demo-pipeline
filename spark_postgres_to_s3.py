@@ -30,6 +30,9 @@ print(args.postgres_table)
 print(args.postgres_user)
 print(args.postgres_password)
 
+df = spark.read.parquet(args.output_path)
+df.show(5)
+
 # Postgres JDBC read
 df = spark.read \
     .format("jdbc") \
