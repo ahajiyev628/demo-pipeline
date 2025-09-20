@@ -11,6 +11,10 @@ args = parser.parse_args()
 
 spark = SparkSession.builder \
     .appName("PostgresToMinIO") \
+    .config("spark.jars.packages", ",".join([
+        "org.apache.hadoop:hadoop-aws:3.3.4",
+        "com.amazonaws:aws-java-sdk-bundle:1.12.765",
+    ])) \
     .getOrCreate()
 
 jdbc_url = args.postgres_url
