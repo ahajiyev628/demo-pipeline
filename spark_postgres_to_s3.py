@@ -8,6 +8,8 @@ parser.add_argument("--postgres_table", required=True)
 parser.add_argument("--postgres_user", required=True)
 parser.add_argument("--postgres_password", required=True)
 parser.add_argument("--output_path", required=True)
+parser.add_argument("--input_path", required=True)
+
 args = parser.parse_args()
 
 def get_driver_host_from_hosts():
@@ -30,7 +32,7 @@ print(args.postgres_table)
 print(args.postgres_user)
 print(args.postgres_password)
 
-df = spark.read.parquet(args.output_path)
+df = spark.read.csv(args.input_path)
 df.show(5)
 
 # Postgres JDBC read
