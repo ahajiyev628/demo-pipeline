@@ -10,9 +10,19 @@ parser.add_argument("--postgres_password", required=True)
 parser.add_argument("--output_path", required=True)
 args = parser.parse_args()
 
+def get_driver_host_from_hosts():
+    try:
+        with open('/etc/hosts', 'r') as f:
+            for line in f:
+                parts = line.split()
+                return parts[0]
+    except FileNotFoundError:
+        return "Could not read /etc/hosts"
+
 # Spark session
 spark = SparkSession.builder \
     .appName("PostgresToMinIO") \
+    .config("spark.driver.host", get_driver_host_from_hosts()) \
     .getOrCreate()  # jars already pre-baked in image
 
 print(args.postgres_url)
