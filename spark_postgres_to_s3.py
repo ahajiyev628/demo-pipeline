@@ -12,6 +12,11 @@ parser.add_argument("--input_path", required=True)
 
 args = parser.parse_args()
 
+driver_host = subprocess.getoutput(
+    "grep -E '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' /etc/hosts | grep -v '127.0.0.1' | awk '{print $1}'"
+)
+
+
 # Spark session
 spark = (
     SparkSession.builder
@@ -27,7 +32,9 @@ spark = (
     # Other useful configs
     .config("spark.sql.parquet.compression.codec", "snappy")
     .config("spark.kubernetes.driver.service.expose", "true")
+    .config("spark.kubernetes.container.image", "ahajiyev/spark-minio6:3.5.1")
     .config("spark.kubernetes.authenticate.driver.serviceAccountName", "airflow")
+    .config("spark.driver.host", driver_host) 
     .getOrCreate()
 )
 
