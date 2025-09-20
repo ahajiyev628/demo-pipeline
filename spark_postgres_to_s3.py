@@ -12,21 +12,11 @@ parser.add_argument("--input_path", required=True)
 
 args = parser.parse_args()
 
-def get_driver_host_from_hosts():
-    try:
-        with open('/etc/hosts', 'r') as f:
-            for line in f:
-                parts = line.split()
-                return parts[0]
-    except FileNotFoundError:
-        return "Could not read /etc/hosts"
-
 # Spark session
 spark = SparkSession.builder \
     .appName("PostgresToMinIO") \
-    .config("spark.driver.host", "0.0.0.0") \
     .config("spark.driver.bindAddress", "0.0.0.0") \
-    .getOrCreate()  # jars already pre-baked in image
+    .getOrCreate()  # jars already baked in image
 
 print(args.postgres_url)
 print(args.postgres_table)
@@ -36,12 +26,12 @@ print(args.input_path)
 print(args.output_path)
 print("----------------------------------")
 
+# Read CSV from MinIO
+df_csv = spark.read.csv(args.input_path, header=True, inferSchema=True)
+df_csv.show(5)
 
-df = spark.read.csv(args.input_path)
-df.show(5)
-
-# Postgres JDBC read
-df = spark.read \
+# Read Postgres table
+df_pg = spark.read \
     .format("jdbc") \
     .option("url", args.postgres_url) \
     .option("dbtable", args.postgres_table) \
@@ -49,10 +39,10 @@ df = spark.read \
     .option("password", args.postgres_password) \
     .load()
 
-df.limit(10).show()
+df_pg.show(10)
 
-# Write to MinIO (S3)
-df.write \
+# Write to MinIO as Parquet
+df_pg.write \
     .mode("overwrite") \
     .parquet(args.output_path)
 
