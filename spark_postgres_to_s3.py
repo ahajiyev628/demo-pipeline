@@ -24,7 +24,8 @@ def get_driver_host_from_hosts():
 # Spark session
 spark = SparkSession.builder \
     .appName("PostgresToMinIO") \
-    .config("spark.driver.host", get_driver_host_from_hosts()) \
+    .config("spark.driver.host", "0.0.0.0") \
+    .config("spark.driver.bindAddress", "0.0.0.0") \
     .getOrCreate()  # jars already pre-baked in image
 
 print(args.postgres_url)
