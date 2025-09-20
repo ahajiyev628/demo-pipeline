@@ -43,6 +43,7 @@ spark = (
     .config("spark.executor.cores", "1")
     .config("spark.executor.memory", "3g")
     .config("spark.driver.memory", "3g")
+    .config("spark.driver.bindAddress", "0.0.0.0") \
 
     .getOrCreate()
 )
