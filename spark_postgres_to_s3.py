@@ -31,6 +31,10 @@ print(args.postgres_url)
 print(args.postgres_table)
 print(args.postgres_user)
 print(args.postgres_password)
+print(args.input_path)
+print(args.output_path)
+print("----------------------------------")
+
 
 df = spark.read.csv(args.input_path)
 df.show(5)
