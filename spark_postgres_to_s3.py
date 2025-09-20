@@ -45,6 +45,8 @@ spark = (
     .config("spark.driver.memory", "3g")
     .config("spark.driver.bindAddress", "0.0.0.0") \
     .config("spark.jars.ivy", "/tmp/.ivy2") \
+    .config("spark.kubernetes.executor.container.image", "ahajiyev/spark-minio6:3.5.1") \
+    .config("spark.kubernetes.container.image", "ahajiyev/spark-minio6:3.5.1") \
     .getOrCreate()
 )
 
