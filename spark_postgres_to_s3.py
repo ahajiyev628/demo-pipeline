@@ -15,6 +15,8 @@ args = parser.parse_args()
 # Spark session
 spark = SparkSession.builder \
     .appName("PostgresToMinIO") \
+    .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer") \
+    .config("spark.kubernetes.authenticate.driver.serviceAccountName", "airflow") \
     .getOrCreate()  # jars already baked in image
 
 print(args.postgres_url)
