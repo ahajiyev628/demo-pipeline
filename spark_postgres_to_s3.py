@@ -13,11 +13,23 @@ parser.add_argument("--input_path", required=True)
 args = parser.parse_args()
 
 # Spark session
-spark = SparkSession.builder \
-    .appName("PostgresToMinIO") \
-    .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer") \
-    .config("spark.kubernetes.authenticate.driver.serviceAccountName", "airflow") \
-    .getOrCreate()  # jars already baked in image
+spark = (
+    SparkSession.builder
+    .appName("PostgresToMinIO")
+    # MinIO S3A configs
+    .config("spark.hadoop.fs.s3a.endpoint", "http://minio-external.default.svc.cluster.local:9000")
+    .config("spark.hadoop.fs.s3a.path.style.access", "true")
+    .config("spark.hadoop.fs.s3a.connection.ssl.enabled", "false")
+    .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
+    .config("spark.hadoop.fs.s3a.access.key", "adminic")
+    .config("spark.hadoop.fs.s3a.secret.key", "adminic123")
+    .config("spark.hadoop.fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider")
+    # Other useful configs
+    .config("spark.sql.parquet.compression.codec", "snappy")
+    .config("spark.kubernetes.driver.service.expose", "true")
+    .config("spark.kubernetes.authenticate.driver.serviceAccountName", "airflow")
+    .getOrCreate()
+)
 
 print(args.postgres_url)
 print(args.postgres_table)
