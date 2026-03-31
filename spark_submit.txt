@@ -1,0 +1,109 @@
+#!/bin/bash
+
+DEPLOYMENT_CODE=$1
+DRIVER_MEM=$2
+DRIVER_CORES=$3
+
+NUMBER_OF_EXECUTORS=$4
+EXECUTOR_MEM=$5
+EXECUTOR_CORES=$6
+
+DRIVER_POD_NAME=$7
+
+#KUBE_CONTROL_PLANE="k8s://https://api.data-ocp1.abb-bank.az:6443"
+KUBE_CONTROL_PLANE="k8s://https://10.128.86.221:6443"
+KUBE_NS="spark"
+
+LOG_DIR="/tmp/"
+log_file_name="$LOG_DIR$DRIVER_POD_NAME""_"`date "+%Y%m%d%H%M%S"`".log"
+echo "Spark Driver submission log file: $log_file_name"
+
+nohup $SPARK_HOME/bin/spark-submit   \
+--master  "$KUBE_CONTROL_PLANE" \
+--deploy-mode cluster   \
+--executor-memory $EXECUTOR_MEM \
+--driver-memory $DRIVER_MEM \
+--num-executors $NUMBER_OF_EXECUTORS \
+--conf "spark.kubernetes.driver.request.cores=$DRIVER_CORES" \
+--conf "spark.kubernetes.executor.request.cores=$EXECUTOR_CORES" \
+--conf "spark.kubernetes.container.image=harbor.ibar.az/abb-data/spark-py:spark-DETEAMv10"   \
+--conf "spark.kubernetes.driver.pod.name=$DRIVER_POD_NAME"   \
+--conf "spark.kubernetes.namespace=spark"   \
+--conf "spark.kubernetes.authenticate.driver.serviceAccountName=spark"   \
+--conf "spark.kubernetes.authenticate.executor.serviceAccountName=spark"   \
+--conf "spark.hadoop.fs.s3a.access.key=ODTrOru33QcmAycuKQpe" \
+--conf "spark.hadoop.fs.s3a.secret.key=vlqHEeT0iCccnciCGkVgDNiiQPwzOR1FmK3ZPmqW" \
+--conf "spark.hadoop.fs.s3a.fast.upload=true" \
+--conf "spark.hadoop.fs.s3a.path.style.access=true" \
+--conf "spark.hadoop.fs.s3a.impl=org.apache.hadoop.fs.s3a.S3AFileSystem" \
+--conf "spark.kubernetes.file.upload.path=bigdatastore" \
+--conf "spark.hadoop.fs.s3a.endpoint=http://10.128.86.10:9000/" \
+--conf "spark.kubernetes.trust.certificates=true" \
+--conf "spark.sql.parquet.compression.codec=snappy" \
+--conf "spark.sql.debug.maxToStringFields=1000" \
+--conf "spark.sql.parquet.datetimeRebaseModeInWrite=CORRECTED" \
+--conf "spark.sql.legacy.parquet.int96RebaseModeInWrite=LEGACY" \
+--conf "spark.hadoop.hive.metastore.uris=thrift://hive.hive-prod:9083" \
+--conf "spark.hadoop.hive.metastore.client.socket.timeout=7200" \
+--conf "spark.sql.catalogImplementation=hive" \
+--conf "spark.sql.extensions=io.delta.sql.DeltaSparkSessionExtension,org.apache.kyuubi.plugin.spark.authz.ranger.RangerSparkExtension" \
+--conf "spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog" \
+--conf "spark.submit.pyFiles=local:///opt/spark/jars/delta-core_2.12-2.4.0.jar,local:///opt/spark/jars/delta-storage-2.4.0.jar,local:///opt/spark/jars/spark-xml_2.12-0.15.0.jar,local:///opt/spark/jars/jedis-3.6.0.jar,local:///opt/spark/jars/spark-redis_2.12-3.0.0.jar,local:///opt/spark/jars/commons-pool2-2.9.0.jar,local:///opt/spark/jars/mysql-connector-j-9.2.0.jar" \
+--conf "spark.sql.sources.partitionOverwriteMode=dynamic" \
+--conf "spark.databricks.delta.replaceWhere.dataColumns.enabled=false" \
+--conf "spark.extraListeners=com.hortonworks.spark.atlas.SparkAtlasEventTracker" \
+--conf "spark.sql.queryExecutionListeners=com.hortonworks.spark.atlas.SparkAtlasEventTracker" \
+--conf "spark.kubernetes.container.image.pullSecrets=harbor-ibar-az" \
+--conf "spark.driver.extraClassPath=/opt/spark/ranger-conf:/opt/spark/atlas-conf/" \
+--conf "spark.kubernetes.driver.secrets.sac-secret=/opt/spark/atlas-conf" \
+--conf "spark.kubernetes.driver.secrets.spark-security-secret=/opt/spark/ranger-conf" \
+--conf "spark.executor.extraJavaOptions=-XX:+UseG1GC" \
+--conf "spark.driver.extraJavaOptions=-XX:+UseG1GC" \
+--conf "spark.kubernetes.driver.podTemplateFile=s3a://bigdatastore/pod_template.yml" \
+--conf "spark.kubernetes.executor.podTemplateFile=s3a://bigdatastore/pod_template.yml" \
+--conf "spark.kubernetes.driver.secretKeyRef.DWH_AIRFLOW_CONFIG=dwhrac-secret:dwh_airflow" \
+--conf "spark.kubernetes.driver.secretKeyRef.DWH_CONFIG=dwhrac-secret:dwh" \
+--conf "spark.kubernetes.driver.secretKeyRef.TRNDB_CONFIG=trndb-secret:ubs1203dwh" \
+--conf "spark.kubernetes.driver.secretKeyRef.FCJ12PROD_CONFIG=fcj12prod-secret:ubs1203dwh" \
+--conf "spark.kubernetes.driver.secretKeyRef.MINIO_BIGDATASTORE_CONFIG=minio-bigdatastore-secret:bigdatastore" \
+--conf spark.sql.shuffle.partitions=64 \
+--conf spark.default.parallelism=64 \
+--conf "spark.driver.kafka_jks_path=s3a://bigdatastore/shahin/prod-truststore.jks" \
+--jars s3a://bigdatastore/jars/spark-excel_2.12-3.3.3_0.20.3.jar,s3a://bigdatastore/jars/mongo-spark-connector_2.12-10.3.0.jar,s3a://bigdatastore/jars/mongodb-driver-sync-4.8.2.jar,s3a://bigdatastore/jars/mongodb-driver-core-4.8.2.jar,s3a://bigdatastore/jars/bson-4.8.2.jar \
+$DEPLOYMENT_CODE "${@:8}" > $log_file_name  2>&1  &
+
+RETRY_COUNT=900
+RETRY_INTERVAL=10
+
+is_app_created_once=false
+for i in $(seq 1 $RETRY_COUNT);
+do
+    echo -n "Application Status Check for iteration $i ";
+
+    app_state_all=`${SPARK_HOME}/bin/spark-submit   --master $KUBE_CONTROL_PLANE --conf "spark.kubernetes.trust.certificates=true" --status $KUBE_NS:$DRIVER_POD_NAME --conf "spark.kubernetes.submission.connectionTimeout=60000" --conf "spark.kubernetes.submission.requestTimeout=60000" --conf "spark.kubernetes.driver.connectionTimeout=60000" --conf "spark.kubernetes.driver.requestTimeout=60000"`
+
+    echo $app_state_all
+
+    /usr/local/bin/spark_k8s_app_state_detector.sh  $KUBE_CONTROL_PLANE $KUBE_NS $DRIVER_POD_NAME
+    m_exit_code=$?
+    if [[ $m_exit_code -eq 255 ]]; then # App is running
+        is_app_created_once=true
+        sleep $RETRY_INTERVAL;
+    elif [[ $m_exit_code -eq 254 ]]; then # App could not found
+        if [ "$is_app_created_once" = true ] ; then
+            echo "Pod is not reachable. Failing script."
+            exit 1
+        else
+            sleep $RETRY_INTERVAL;
+        fi
+    elif [[ $m_exit_code -eq 0 ]]; then
+        oc delete pod $DRIVER_POD_NAME -n spark
+        echo "Manually detected exit code is: $m_exit_code"
+        echo "Deleting pod [$DRIVER_POD_NAME]."
+        exit $m_exit_code
+    else
+        #oc delete pod $DRIVER_POD_NAME -n spark
+        echo "Manually detected exit code is: $m_exit_code"
+       exit $m_exit_code
+    fi
+done

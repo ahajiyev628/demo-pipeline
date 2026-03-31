@@ -1,0 +1,54 @@
+apiVersion: sparkoperator.k8s.io/v1beta2
+kind: SparkApplication
+metadata:
+  name: {{ params.name }}
+  namespace: {{ params.namespace }}
+spec:
+  type: Python
+  mode: cluster
+  image: {{ params.image }}
+  imagePullPolicy: IfNotPresent
+  mainApplicationFile: {{ params.mainApplicationFile }}
+  arguments:
+    {% for key, value in (params.get("py_args") or {}).items() %}
+    - --{{ key }}
+    - "{{ value }}"
+    {% endfor %}
+    - --current_date
+    - "{{ data_interval_end.in_timezone('Asia/Baku').strftime('%Y-%m-%d') }}"
+  sparkConf:
+    spark.hadoop.fs.s3a.endpoint: http://bigstore.taifactory.abb-bank.az:9000
+    spark.hadoop.fs.s3a.impl: org.apache.hadoop.fs.s3a.S3AFileSystem
+    spark.hadoop.fs.s3a.path.style.access: 'true'
+    spark.kubernetes.container.image.pullSecrets: harbor-ibar-az
+    spark.hadoop.fs.s3a.fast.upload: 'true'
+    spark.hadoop.fs.s3a.connection.ssl.enabled: 'false'
+    spark.kubernetes.trust.certificates: 'true'
+    spark.sql.parquet.datetimeRebaseModeInWrite: CORRECTED
+    spark.sql.parquet.int96RebaseModeInWrite: LEGACY
+    spark.hadoop.hive.metastore.uris: thrift://172.31.10.212:30001
+    spark.sql.catalogImplementation: hive
+    spark.sql.catalog.spark_catalog: org.apache.spark.sql.delta.catalog.DeltaCatalog
+    spark.sql.sources.partitionOverwriteMode: dynamic
+    spark.databricks.delta.replaceWhere.dataColumns.enabled: 'false'
+    {% for key, value in (params.get("spark_conf") or {}).items() %}
+    "{{ key }}": "{{ value }}"
+    {% endfor %}
+  driver:
+    cores: {{ params.driver_cores }}
+    memory: {{ params.driver_memory }}
+    serviceAccount: {{ params.serviceAccount }}
+    tolerations:
+    - key: node-role.kubernetes.io/spark
+      operator: Exists
+      effect: NoSchedule
+  executor:
+    instances: {{ params.num_instances }}
+    cores: {{ params.executor_cores }}
+    memory: {{ params.executor_memory }}
+    tolerations:
+    - key: node-role.kubernetes.io/spark
+      operator: Exists
+      effect: NoSchedule
+  nodeSelector:
+    node-role.kubernetes.io/spark: ''  

@@ -1,0 +1,48 @@
+def create_python_task(
+        task_id,
+        pyfile_path,
+        pyfile_name,
+        namespace="spark",
+        image=python_image_default,
+        minio_access_key=minio_dataops_access_key,
+        minio_secret_key=minio_dataops_secret_key,
+        extra_env_vars=None,  ##add new
+        add_callbacks=True,
+        on_finish_action="keep_pod"
+):
+
+    env_vars = {
+        "MINIO_ALIAS": MINIO_ALIAS,
+        "MINIO_URL": MINIO_URL,
+        "MINIO_ACCESS_KEY": minio_access_key,
+        "MINIO_SECRET_KEY": minio_secret_key,
+        "PYFILE_PATH": pyfile_path,
+        "PYFILE_NAME": pyfile_name
+    }
+
+    if extra_env_vars:
+        env_vars.update(extra_env_vars) #optional dictionary you can pass with any extra environment variables
+
+    return KubernetesPodOperator(
+        task_id=task_id,
+        namespace=namespace,
+        image=image,
+        image_pull_policy="Always",
+        image_pull_secrets=[k8s.V1LocalObjectReference(name="harbor-ibar-az")],
+        kubernetes_conn_id='ocp_conn_id',
+        arguments=[],
+        env_vars=env_vars,
+        secrets=[
+            Secret(
+                deploy_type="env",
+                deploy_target="dwh_airflow_secret",
+                secret="dwhrac-secret",
+                key="dwh_airflow"
+            )
+        ],
+        get_logs=True,
+        on_finish_action=on_finish_action,
+        on_success_callback=task_success_callback if add_callbacks else None,
+        on_failure_callback=task_failure_callback if add_callbacks else None,
+        on_execute_callback=task_running_callback if add_callbacks else None,
+    )
