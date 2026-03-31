@@ -10,8 +10,6 @@ EXECUTOR_CORES=$6
 
 DRIVER_POD_NAME=$7
 
-#KUBE_CONTROL_PLANE="k8s://https://api.data-ocp1.abb-bank.az:6443"
-KUBE_CONTROL_PLANE="k8s://https://10.128.86.221:6443"
 KUBE_NS="spark"
 
 LOG_DIR="/tmp/"
